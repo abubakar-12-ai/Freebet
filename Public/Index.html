@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Freebet Dashboard</title>
+  <style>
+    body { font-family: Arial; margin: 0; background: #f4f4f4; }
+    header { background: #0f172a; color: white; padding: 20px; text-align: center; }
+    nav { display: flex; justify-content: space-between; background: #1e293b; padding: 10px; }
+    nav a, nav button { color: white; text-decoration: none; font-weight: bold; background: none; border: none; cursor: pointer; }
+    .container { padding: 20px; }
+    .wallet-info, .deposit-info { background: #e2e8f0; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+    .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
+    .game-card { background: white; padding: 10px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+    .btn { background: #0ea5e9; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Freebet Platform</h1>
+    <p>Minimum Deposit: ₦5,100 | First Bet: 100% Guaranteed Win</p>
+  </header>
+  <nav>
+    <a href="/">Home</a>
+    <button onclick="logout()">Logout</button>
+  </nav>
+  <div class="container">
+    <div class="wallet-info">
+      <h3>Wallet Balance: ₦<span id="wallet-balance">0</span></h3>
+    </div>
+    <div class="deposit-info">
+      <h3>Deposit Funds</h3>
+      <input type="number" id="deposit-amount" placeholder="Enter amount" min="5100" />
+      <button class="btn" onclick="depositFunds()">Deposit</button>
+    </div>
+    <h2>Games (₦500/play)</h2>
+    <div class="game-grid" id="games">
+      <div class="game-card">
+        <h4>Lucky Spin</h4>
+        <button class="btn" onclick="playGame()">Play</button>
+      </div>
+      <div class="game-card">
+        <h4>Dice Roll</h4>
+        <button class="btn" onclick="playGame()">Play</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check authentication on load
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location = "/login";
+    }
+
+    // Fetch user data (wallet)
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/user", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) {
+          throw new Error("Not authenticated");
+        }
+        const data = await res.json();
+        document.getElementById("wallet-balance").innerText = data.wallet;
+      } catch {
+        localStorage.removeItem("token");
+        window.location = "/login";
+      }
+    }
+    loadUser();
+
+    // Deposit function
+    async function depositFunds() {
+      const amount = parseInt(document.getElementById("deposit-amount").value);
+      if (amount < 5100) {
+        alert("Minimum deposit is ₦5,100");
+        return;
+      }
+      try {
+        const res = await fetch("/api/deposit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ amount }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("wallet-balance").innerText = data.wallet;
+          alert(data.message);
+        } else {
+          alert(data.error);
+        }
+      } catch {
+        alert("Deposit failed. Try again.");
+      }
+    }
+
+    // Play game function
+    async function playGame() {
+      try {
+        const res = await fetch("/api/play", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error);
+          return;
+        }
+        document.getElementById("wallet-balance").innerText = data.wallet;
+        if (data.win) {
+          alert(`🎉 You won ₦${data.amountWon}!`);
+        } else {
+          alert("❌ You lost this round. Try again!");
+        }
+      } catch {
+        alert("Error playing. Please try again.");
+      }
+    }
+
+    // Logout
+    function logout() {
+      localStorage.removeItem("token");
+      window.location = "/login";
+    }
+  </script>
+</body>
+</html>
