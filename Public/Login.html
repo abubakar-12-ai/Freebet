@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Freebet Login</title>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 300px; }
+    input, button { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #0ea5e9; color: white; border: none; cursor: pointer; }
+    button:disabled { background: #94a3b8; }
+    p { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Log In</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Log In</button>
+    </form>
+    <p>Don't have an account? <a href="signup">Sign Up</a></p>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // Save token
+          localStorage.setItem("token", data.token);
+          // If admin, redirect to admin dashboard
+          if (data.isAdmin) {
+            window.location = "/admin";
+          } else {
+            window.location = "/";
+          }
+        } else {
+          alert(data.error);
+        }
+      } catch (err) {
+        alert("Login failed. Try again.");
+      }
+    });
+  </script>
+</body>
+</html>
