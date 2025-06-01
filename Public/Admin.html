@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <style>
+    body { font-family: Arial; background: #f4f4f4; margin: 0; }
+    header { background: #0f172a; color: white; padding: 20px; text-align: center; }
+    nav { display: flex; justify-content: space-between; background: #1e293b; padding: 10px; }
+    nav button { color: white; background: none; border: none; font-weight: bold; cursor: pointer; }
+    .container { padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #e2e8f0; }
+    button.block, button.unblock { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; }
+    button.block { background: #ef4444; color: white; }
+    button.unblock { background: #10b981; color: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Admin Dashboard</h1>
+    <p>Manage Users (Block/Unblock)</p>
+  </header>
+  <nav>
+    <button onclick="logout()">Logout</button>
+  </nav>
+  <div class="container">
+    <h2>All Registered Users</h2>
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Wallet</th>
+          <th>Blocked</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filled dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location = "/login";
+
+    // Fetch all users
+    async function loadUsers() {
+      try {
+        const res = await fetch("/api/admin/users", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!res.ok) {
+          throw new Error("Not authorized");
+        }
+        const users = await res.json();
+        const tbody = document.getElementById("usersTable").querySelector("tbody");
+        tbody.innerHTML = "";
+        users.forEach((u) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${u.email}</td>
+            <td>${u.phone}</td>
+            <td>₦${u.wallet}</td>
+            <td>${u.blocked}</td>
+            <td>
+              ${
+                u.blocked
+                  ? `<button class="unblock" onclick="toggleBlock('${u.email}', false)">Unblock</button>`
+                  : `<button class="block" onclick="toggleBlock('${u.email}', true)">Block</button>`
+              }
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch {
+        localStorage.removeItem("token");
+        window.location = "/login";
+      }
+    }
+    loadUsers();
+
+    // Block or unblock a user
+    async function toggleBlock(email, shouldBlock) {
+      const endpoint = shouldBlock ? "/api/admin/block" : "/api/admin/unblock";
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error);
+          return;
+        }
+        alert(data.message);
+        loadUsers();
+      } catch {
+        alert("Action failed. Try again.");
+      }
+    }
+
+    // Logout
+    function logout() {
+      localStorage.removeItem("token");
+      window.location = "/login";
+    }
+  </script>
+</body>
+</html>
